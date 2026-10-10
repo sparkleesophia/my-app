@@ -4,12 +4,39 @@ import { useState } from "react";
 
 export default function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Replace this string with your unique Formspree URL endpoint
+  const FORMSPREE_ENDPOINT = "https://formspree.io/f/xljgnnwj";
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate sending the form
-    setSubmitted(true);
+    setLoading(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch(FORMSPREE_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        setSubmitted(true);
+      } else {
+        const data = await response.json();
+        setErrorMessage(data.error || "Something went wrong. Please try again.");
+      }
+    } catch (error) {
+      setErrorMessage("Network error. Please check your connection.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -22,14 +49,20 @@ export default function ContactForm() {
       </div>
 
       {submitted ? (
-        <div className="p-6 rounded-2xl bg-purple-950/40 border border-purple-500/30 text-purple-200 animate-fade-in">
+        <div className="p-6 rounded-2xl bg-purple-950/40 border border-purple-500/30 text-purple-200">
           <h3 className="text-xl font-semibold text-white mb-2">Thank you, {formData.name || "friend"}! 🎉</h3>
           <p className="text-sm text-slate-300">
-            Your message has been received. I’ll get back to you soon!
+            Your message has been sent straight to my inbox. I’ll get back to you soon!
           </p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4 text-left">
+          {errorMessage && (
+            <div className="p-3 rounded-lg bg-red-950/50 border border-red-500/30 text-red-200 text-xs">
+              {errorMessage}
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-medium text-slate-300 mb-1">Name</label>
             <input
@@ -68,9 +101,10 @@ export default function ContactForm() {
 
           <button
             type="submit"
-            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-medium text-sm transition-all shadow-lg shadow-purple-600/30"
+            disabled={loading}
+            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-medium text-sm transition-all shadow-lg shadow-purple-600/30 disabled:opacity-50"
           >
-            Send Message
+            {loading ? "Sending message..." : "Send Message"}
           </button>
         </form>
       )}
